@@ -1,0 +1,5 @@
+{
+  "kind": "django_app",
+  "display_name": "X32 Assign-Tasten",
+  "description": "Aufnahme starten/stoppen, Song-Marker und nächster Song über die Assign-Tasten eines X32 (nicht X32 Rack), mit Status-LEDs."
+}
