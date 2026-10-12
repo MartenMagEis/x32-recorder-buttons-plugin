@@ -32,8 +32,11 @@ nicht möglich) mit schnellem Blinken. SONG/NEXT ohne laufende Aufnahme: kurzes 
    Die alte Belegung wird gemerkt; **"Tasten freigeben"** stellt sie wieder her.
 4. **Aktiviert** einschalten.
 
-Lädt jemand am Pult eine Szene, die die Assign-Tasten anders belegt, zeigt der Status das an (das
-Plugin schreibt nie ungefragt ins Pult) - dann einfach neu belegen.
+Lädt jemand am Pult eine Szene, die die Assign-Tasten anders belegt, erscheint in der Weboberfläche
+eine Warnung (das Plugin schreibt nie ungefragt ins Pult). In den Plugin-Einstellungen gibt es dann
+**"Tasten neu belegen (Reparatur)"** - wieder mit Anzeige, was überschrieben wird. "Tasten
+freigeben" lässt in diesem Fall die Belegung der Szene unangetastet. Dauerhaft sauber wird es, wenn
+die Szene selbst mit der Recorder-Belegung gespeichert wird.
 
 ## Technik
 

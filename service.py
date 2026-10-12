@@ -178,13 +178,21 @@ class ButtonService:
 
     def _check_integrity(self):
         """A scene recall can overwrite the assign buttons - then say so (no silent rewrite:
-        writing to the console only ever happens after the user confirmed it)."""
-        bank, number = self.buttons[logic.REC]
-        current = self.link.query(button_path(bank, number))
-        if current is not None and current[0] != assignment_value(bank, number):
-            self.warning = ('Die Tasten wurden am Pult umbelegt (Szene geladen?) - '
-                            'in den Plugin-Einstellungen neu belegen.')
-        elif current is not None:
+        writing to the console only ever happens after the user confirmed it). The warning shows
+        in the web UI's banner (system_health.py) and offers "Tasten neu belegen" in the settings."""
+        changed, answered = [], False
+        for bank, number in self.buttons.values():
+            current = self.link.query(button_path(bank, number))
+            if current is None:
+                continue
+            answered = True
+            if current[0] != assignment_value(bank, number):
+                changed.append(f"{bank}{number}")
+        if changed:
+            self.warning = (f"Assign-Tasten {', '.join(sorted(changed))} wurden am Pult umbelegt (Szene "
+                            "geladen?) - die Recorder-Tasten funktionieren so nicht. In den Einstellungen "
+                            "des Plugins 'X32 Assign-Tasten' mit 'Tasten neu belegen' reparieren.")
+        elif answered:
             self.warning = ''
 
     # --- main loop ---------------------------------------------------------------------------
@@ -268,13 +276,18 @@ class ButtonService:
         self._led_sent = {}
 
     def release(self):
+        """Give the buttons back. Normally that restores what they held before - but not when the
+        console has re-assigned them itself in the meantime (scene recall): then the remembered
+        values are outdated and writing them would overwrite the scene's assignment."""
         from .models import ButtonSettings
 
         settings = ButtonSettings.get_solo()
+        restore = not self.warning
         for function, (bank, number) in self.buttons.items():
             self.link.send(led_path(bank, number), 0)
-        for path, original in (settings.original_assignments or {}).items():
-            self.link.send(path, original)
+        if restore:
+            for path, original in (settings.original_assignments or {}).items():
+                self.link.send(path, original)
         settings.assigned_group = ''
         settings.original_assignments = {}
         settings.save()

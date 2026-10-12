@@ -27,6 +27,9 @@ def _assign_confirm(group):
 def _release_confirm(settings):
     bank, numbers = group_buttons(settings.assigned_group)
     names = ", ".join(f"{bank}{n}" for n in numbers)
+    if get_service().warning:
+        return (f"Die Tasten {names} wurden am Pult inzwischen umbelegt - sie bleiben, wie sie jetzt "
+                "sind; der Recorder nutzt sie nur nicht mehr. Fortfahren?")
     return f"Die Tasten {names} bekommen ihre frühere Belegung zurück. Fortfahren?"
 
 
@@ -36,8 +39,14 @@ def get_config_schema():
     fields.append({"name": "assignment", "label": "Belegung am Pult", "type": "string", "help_text": "",
                    "readonly": True})
     if settings.assigned_group:
-        fields.append({"name": "release", "label": "Tasten freigeben (frühere Belegung zurück)",
-                       "type": "action", "help_text": "", "readonly": False,
+        if get_service().warning:
+            fields.append({"name": "repair", "label": "Tasten neu belegen (Reparatur)", "type": "action",
+                           "help_text": "Das Pult hat die Tasten umbelegt (z.B. durch eine geladene Szene). "
+                                        "Schreibt die Recorder-Belegung erneut ins Pult.",
+                           "readonly": False, "confirm": _assign_confirm(settings.assigned_group)})
+        fields.append({"name": "release", "label": "Tasten freigeben", "type": "action",
+                       "help_text": "Der Recorder gibt die Tasten zurück; ihre frühere Belegung wird "
+                                    "wiederhergestellt.", "readonly": False,
                        "confirm": _release_confirm(settings)})
     else:
         fields.append({"name": "assign", "label": "Tasten am Pult belegen", "type": "action",
@@ -86,6 +95,11 @@ def handle_config_action(action_name, data):
         if settings.assigned_group:
             raise ValidationError("Tasten sind schon belegt.")
         service.assign(settings.group)
+    elif action_name == "repair":
+        if settings.assigned_group:
+            # like a fresh assignment: what the buttons hold *now* (the scene's assignment) becomes
+            # the "previous" one a later release restores
+            service.assign(settings.assigned_group)
     elif action_name == "release":
         if settings.assigned_group:
             service.release()

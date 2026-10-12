@@ -167,5 +167,43 @@ class ButtonPluginTests(TestCase):
             time.sleep(0.02)
         self.assertTrue(calls and calls[0].endswith("/stop/"), calls)
 
+    def test_scene_recall_warns_offers_repair_and_release_leaves_console_alone(self):
+        from .. import system_health
+
+        plugin_config.handle_config_action("assign", {})
+        settings = ButtonSettings.get_solo()
+        settings.enabled = True
+        settings.save()
+        self.service.refresh()
+        self.assertEqual(system_health.get_warnings(), [])
+
+        # a scene recall re-assigns two of our buttons
+        self.x32.config["/config/userctrl/C/btn/5"] = "S0001"
+        self.x32.config["/config/userctrl/C/btn/6"] = "S0002"
+        self.service._check_integrity()
+        with patch("x32_recorder_buttons_plugin.system_health.get_service", return_value=self.service):
+            warnings = system_health.get_warnings()
+        self.assertEqual(warnings[0]["key"], "buttons_reassigned")
+        self.assertIn("C5, C6", warnings[0]["message"])
+
+        fields = {f["name"]: f for f in plugin_config.get_config_schema()["fields"]}
+        self.assertIn("C5 (bisher: S0001)  ->  REC", fields["repair"]["confirm"])
+        self.assertIn("bleiben, wie sie jetzt", fields["release"]["confirm"])
+
+        plugin_config.handle_config_action("repair", {})
+        self.assertEqual(self.x32.config["/config/userctrl/C/btn/5"], assignment_value("C", 5))
+        self.assertEqual(self.service.warning, "")
+        # the scene's assignment is what a later release restores
+        self.assertEqual(ButtonSettings.get_solo().original_assignments["/config/userctrl/C/btn/5"], "S0001")
+
+        # re-assigned again, and this time the user just releases: nothing is written back
+        self.service.refresh()
+        self.x32.config["/config/userctrl/C/btn/5"] = "S0009"
+        self.service._check_integrity()
+        plugin_config.handle_config_action("release", {})
+        time.sleep(0.2)
+        self.assertEqual(self.x32.config["/config/userctrl/C/btn/5"], "S0009")
+        self.assertEqual(ButtonSettings.get_solo().assigned_group, "")
+
     def test_function_mapping(self):
         self.assertEqual(logic.FUNCTIONS, (logic.REC, logic.SONG, logic.NEXT))
