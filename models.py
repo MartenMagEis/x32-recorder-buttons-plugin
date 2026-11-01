@@ -27,8 +27,9 @@ class ButtonSettings(models.Model):
                    "solange keine Tasten belegt sind."
     )
     double_press_ms = models.IntegerField(
-        "Doppeldruck-Fenster (ms)", default=600,
-        help_text="Aufnahme stoppen: REC zweimal innerhalb dieser Zeit drücken."
+        "Doppeldruck-Fenster (ms)", default=1000,
+        help_text="Aufnahme stoppen: REC zweimal innerhalb dieser Zeit drücken. So lange ist das LED nach "
+                  "dem ersten Druck aus."
     )
 
     # Which group is currently programmed on the console ("" = none) and what those buttons held

@@ -4,8 +4,10 @@ recorder state and carries out what it returns.
 
 Buttons of a group (4 consecutive assign buttons), by position:
   0 REC   not recording: press -> start. Recording: double press (two presses within
-          double_press_s) -> stop. A single press while recording only answers with a short blink
-          ("press again to stop"). No hold-to-stop: while a button's LED is on, the console reports
+          double_press_s) -> stop. A single press while recording turns the LED off for that time
+          ("press again to stop") - steadily, because blinking writes the very value the console
+          reports presses through, and presses during a blink got lost. After a stop, REC ignores
+          presses for a moment, so hammering it can't start a new recording. No hold-to-stop: while a button's LED is on, the console reports
           only its release (see service.py), so how long it was held can't be known.
   1 SONG  song start / song end (like the web UI's marker button)
   2 NEXT  end the open song and start the next one of the setlist
@@ -18,12 +20,14 @@ FUNCTIONS = (REC, SONG, NEXT)
 START, STOP, MARKER, NEXT_SONG = 'start', 'stop', 'marker', 'next'
 ARMED = 'armed'                  # REC pressed once while recording - waiting for the 2nd press
 NOT_RECORDING = 'not_recording'  # SONG/NEXT without a running recording
+RESTART_LOCK_S = 3.0             # REC can't start a new recording this soon after a stop
 
 
 class ButtonLogic:
-    def __init__(self, double_press_s=0.6):
+    def __init__(self, double_press_s=1.0):
         self.double_press_s = double_press_s
         self._rec_last_press = None   # time of the arming press while recording
+        self._rec_stopped_at = None   # time of the last stop by double press
         self._blinks = {}             # function -> (start, times, period_s)
 
     # --- input -------------------------------------------------------------------------------
@@ -32,9 +36,12 @@ class ButtonLogic:
         if function == REC:
             if not recording:
                 self._rec_last_press = None
+                if self._rec_stopped_at is not None and now - self._rec_stopped_at < RESTART_LOCK_S:
+                    return None
                 return START
             if self._rec_last_press is not None and now - self._rec_last_press <= self.double_press_s:
                 self._rec_last_press = None
+                self._rec_stopped_at = now
                 return STOP
             self._rec_last_press = now
             return ARMED
@@ -52,7 +59,8 @@ class ButtonLogic:
 
     def leds(self, now, recording, song_open):
         """{function: on?} for every button of the group."""
-        state = {REC: recording, SONG: recording and song_open, NEXT: False}
+        armed = self._rec_last_press is not None and now - self._rec_last_press <= self.double_press_s
+        state = {REC: recording and not armed, SONG: recording and song_open, NEXT: False}
         for function, (start, times, period_s) in list(self._blinks.items()):
             elapsed = now - start
             if elapsed >= times * period_s:

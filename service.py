@@ -155,7 +155,6 @@ class ButtonService:
             return
         now = time.monotonic()
         if action == logic.ARMED:
-            self.logic.blink(function, now, times=2, period_s=0.3)
             self.remember(function, 'zum Stoppen nochmal drücken')
             return
         if action == logic.NOT_RECORDING:

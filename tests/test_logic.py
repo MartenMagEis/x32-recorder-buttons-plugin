@@ -31,6 +31,12 @@ class PressTests(unittest.TestCase):
         self.assertEqual(self.logic.press(REC, 0.0, recording=False), START)
         self.assertEqual(self.logic.press(REC, 0.3, recording=True), ARMED)
 
+    def test_rec_cannot_restart_right_after_a_stop(self):
+        self.logic.press(REC, 0.0, recording=True)
+        self.assertEqual(self.logic.press(REC, 0.3, recording=True), STOP)
+        self.assertIsNone(self.logic.press(REC, 1.0, recording=False))
+        self.assertEqual(self.logic.press(REC, 3.5, recording=False), START)
+
     def test_song_and_next(self):
         self.assertEqual(self.logic.press(SONG, 0.0, recording=True), MARKER)
         self.assertEqual(self.logic.press(NEXT, 0.0, recording=True), NEXT_SONG)
@@ -42,6 +48,13 @@ class LedTests(unittest.TestCase):
         logic = ButtonLogic()
         self.assertEqual(logic.leds(0.0, recording=True, song_open=True), {REC: True, SONG: True, NEXT: False})
         self.assertEqual(logic.leds(0.0, recording=False, song_open=True), {REC: False, SONG: False, NEXT: False})
+
+    def test_rec_led_stays_off_while_waiting_for_the_second_press(self):
+        logic = ButtonLogic(double_press_s=1.0)
+        logic.press(REC, 10.0, recording=True)
+        self.assertFalse(logic.leds(10.1, True, False)[REC])
+        self.assertFalse(logic.leds(10.9, True, False)[REC])
+        self.assertTrue(logic.leds(11.1, True, False)[REC])
 
     def test_blink_overrides_then_ends(self):
         logic = ButtonLogic()

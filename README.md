@@ -14,7 +14,7 @@ Eine Gruppe aus 4 nebeneinanderliegenden Tasten einer Bank (in den Einstellungen
 
 | Taste | Funktion | LED |
 |---|---|---|
-| 1. **REC** | Drücken: Aufnahme starten (mit der zuletzt gewählten Vorlage, wie in der Weboberfläche vorbelegt). **Stoppen nur per Doppeldruck** (Zeit einstellbar) - ein einzelner Druck während der Aufnahme blinkt nur ("nochmal drücken"). Halten zum Stoppen geht nicht: Solange das LED einer Taste an ist, meldet das Pult nur das Loslassen | an = Aufnahme läuft |
+| 1. **REC** | Drücken: Aufnahme starten (mit der zuletzt gewählten Vorlage, wie in der Weboberfläche vorbelegt). **Stoppen nur per Doppeldruck** (Zeit einstellbar) - nach einem einzelnen Druck ist das LED 1 s aus ("nochmal drücken"), direkt nach einem Stopp ignoriert REC Drücke für 3 s. Halten zum Stoppen geht nicht: Solange das LED einer Taste an ist, meldet das Pult nur das Loslassen | an = Aufnahme läuft |
 | 2. **SONG** | Song-Start / Song-Ende, wie der Marker-Button | an = Song offen |
 | 3. **NEXT** | Offenen Song beenden und nächsten Song der Setlist starten | aus |
 | 4. | bleibt frei und unverändert | |
