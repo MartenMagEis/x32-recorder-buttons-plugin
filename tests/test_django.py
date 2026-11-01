@@ -97,6 +97,9 @@ class ButtonPluginTests(TestCase):
             plugin_config.update_config_values({"group": "A9"})
         self.service.refresh()
         plugin_config.handle_config_action("release", {})
+        end = time.time() + 2  # UDP - the simulated console needs a moment
+        while self.x32.config["/config/userctrl/C/btn/5"] != "P0002" and time.time() < end:
+            time.sleep(0.01)
         self.assertEqual(self.x32.config["/config/userctrl/C/btn/5"], "P0002")
         self.assertEqual(ButtonSettings.get_solo().assigned_group, "")
 
