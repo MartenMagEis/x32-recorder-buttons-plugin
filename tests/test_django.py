@@ -146,26 +146,37 @@ class ButtonPluginTests(TestCase):
         run_until(lambda: False, timeout=0.3)
         self.assertEqual(len([c for c in calls if c[1].endswith("/stop/")]), 1)
 
-    def test_hold_stops(self):
+    def test_lit_button_reports_only_its_release(self):
+        """Real X32: while a button's LED is on, a press isn't reported - only the release."""
         plugin_config.handle_config_action("assign", {})
         settings = ButtonSettings.get_solo()
         settings.enabled = True
-        settings.hold_ms = 400
         settings.save()
         Recording.objects.create(state=Recording.RECORD, channels=[0])
         calls = []
         self.service._api = lambda method, path, data=None: calls.append(path) or {}
         self.service._last_refresh = 0.0
-        end = time.time() + 2
-        while self.x32.subscriber is None and time.time() < end:
-            self.service.step()
-            time.sleep(0.02)
-        self.x32.press(17)  # and keep it down
-        end = time.time() + 2
-        while not calls and time.time() < end:
-            self.service.step()
-            time.sleep(0.02)
-        self.assertTrue(calls and calls[0].endswith("/stop/"), calls)
+
+        def run_until(condition, timeout=2):
+            end = time.time() + timeout
+            while not condition() and time.time() < end:
+                self.service.step()
+                time.sleep(0.02)
+            return condition()
+
+        self.assertTrue(run_until(lambda: self.x32.subscriber is not None))
+        self.x32.press(17, down=False)
+        run_until(lambda: False, timeout=0.15)
+        self.assertEqual(calls, [])  # one press only arms the stop
+        self.x32.press(17, down=False)
+        self.assertTrue(run_until(lambda: calls))
+        self.assertTrue(calls[0].endswith("/stop/"), calls)
+        # a release of a press that was reported is not a second press
+        self.x32.press(18)
+        self.assertTrue(run_until(lambda: len(calls) >= 2))
+        self.x32.press(18, down=False)
+        run_until(lambda: False, timeout=0.15)
+        self.assertEqual(len(calls), 2, calls)
 
     def test_scene_recall_warns_offers_repair_and_release_leaves_console_alone(self):
         from .. import system_health

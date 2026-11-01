@@ -28,10 +28,8 @@ class ButtonSettings(models.Model):
     )
     double_press_ms = models.IntegerField(
         "Doppeldruck-Fenster (ms)", default=600,
-        help_text="Aufnahme stoppen: REC zweimal innerhalb dieser Zeit drücken ..."
+        help_text="Aufnahme stoppen: REC zweimal innerhalb dieser Zeit drücken."
     )
-    hold_ms = models.IntegerField("Halten zum Stoppen (ms)", default=1500,
-                                  help_text="... oder REC so lange gedrückt halten.")
 
     # Which group is currently programmed on the console ("" = none) and what those buttons held
     # before, so "Tasten freigeben" can put it back exactly.

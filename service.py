@@ -21,6 +21,7 @@ from .x32_osc import X32Link, button_path, led_path, userpar_id
 logger = logging.getLogger(__name__)
 
 LOOP_S = 0.05
+PRESS_MAX_S = 10.0  # a press whose release never arrived doesn't swallow the next one
 REFRESH_S = 2.0
 LED_RESEND_S = 2.0
 INTEGRITY_CHECK_S = 30.0
@@ -39,6 +40,7 @@ class ButtonService:
         self.logic = ButtonLogic()
         self._events = []
         self._events_lock = threading.Lock()
+        self._down = {}           # logic function -> time its press was reported
         self.settings = None
         self.functions = {}       # userpar id -> logic function
         self.buttons = {}         # logic function -> (bank, button)
@@ -76,7 +78,6 @@ class ButtonService:
         cfg = OscConfig.get_solo()
         self.link.set_target(cfg.x32_ip, cfg.x32_port)
         self.logic.double_press_s = self.settings.double_press_ms / 1000.0
-        self.logic.hold_s = self.settings.hold_ms / 1000.0
 
         self.functions, self.buttons = {}, {}
         if self.settings.assigned_group:
@@ -155,7 +156,7 @@ class ButtonService:
         now = time.monotonic()
         if action == logic.ARMED:
             self.logic.blink(function, now, times=2, period_s=0.3)
-            self.remember(function, 'zum Stoppen nochmal drücken oder halten')
+            self.remember(function, 'zum Stoppen nochmal drücken')
             return
         if action == logic.NOT_RECORDING:
             self.logic.blink(function, now, times=3, period_s=0.12)
@@ -212,12 +213,18 @@ class ButtonService:
             function = self.functions.get(par)
             if function is None:
                 continue
+            # Button and LED share one value on the console: press = 127, release = 0, and writing
+            # it sets the LED. While the LED is on the value already is 127, so the press changes
+            # nothing and only the release gets reported (seen on a real X32, firmware 4.06). A
+            # release without a press therefore *is* the press.
             if value > 0:
+                self._down[function] = t
                 self._dispatch(function, self.logic.press(function, t, bool(self.recording)))
             else:
-                self.logic.release(function, t)
-                self._update_leds(now, force=True)  # the console may have changed it
-        self._dispatch(logic.REC, self.logic.tick(now, bool(self.recording)))
+                down = self._down.pop(function, None)
+                if down is None or t - down > PRESS_MAX_S:
+                    self._dispatch(function, self.logic.press(function, t, bool(self.recording)))
+                self._update_leds(now, force=True)  # the release turned the LED off on the console
         resend = now - self._last_led_resend >= LED_RESEND_S
         if resend:
             self._last_led_resend = now

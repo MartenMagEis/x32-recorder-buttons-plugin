@@ -7,7 +7,7 @@ from . import logic
 from .models import ButtonSettings, group_buttons
 from .service import get_service
 
-FIELDS = ["enabled", "group", "double_press_ms", "hold_ms"]
+FIELDS = ["enabled", "group", "double_press_ms"]
 FUNCTION_LABELS = {logic.REC: "REC", logic.SONG: "SONG", logic.NEXT: "NEXT"}
 
 
